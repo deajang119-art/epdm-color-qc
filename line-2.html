@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>EPDM 선형(직선) 검측기</title>
+  <meta name="description" content="현장에서 사진을 촬영·불러와 고무칩 색상 경계의 직선 선형을 검측합니다. 축척과 기준선을 잡고 경계를 따라 점을 찍으면 최대편차·불량비율·울음(RMS)을 계산해 합격/조건부/불량을 판정합니다." />
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    body{margin:0;font-family:'Pretendard','Noto Sans KR',system-ui,sans-serif;background:#f4f5f7;color:#1c2b24;}
+    #app{background:#f4f5f7;min-height:100vh;max-width:480px;margin:0 auto;}
+    button{font-family:inherit;} input{font-family:inherit;}
+    .hd{background:linear-gradient(135deg,#1B3A5C,#2E75B6);padding:14px 18px;color:#fff;}
+    .hd .sm{font-size:10px;letter-spacing:2px;opacity:.6;}
+    .hd .tt{font-size:18px;font-weight:800;margin-top:2px;}
+    .tabs{display:flex;background:#fff;border-bottom:1px solid #e8e8e8;}
+    .tabs button{flex:1;padding:10px 0;border:none;font-size:13px;cursor:pointer;background:#f9f9f9;border-bottom:3px solid transparent;color:#999;}
+    .tabs button.on{background:#fff;border-bottom-color:#2E75B6;font-weight:700;color:#1B3A5C;}
+    .body{padding:16px 18px;}
+    .hide{display:none!important;}
+    .card{background:#fff;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+    .card .lab{font-size:12px;font-weight:600;color:#888;margin-bottom:6px;}
+    .bigRow{display:flex;gap:8px;}
+    .bigRow button{flex:1;padding:13px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;}
+    .btnCam{background:linear-gradient(135deg,#1B3A5C,#2E75B6);color:#fff;border:none;}
+    .btnGal{background:#fff;color:#1B3A5C;border:2px solid #2E75B6;}
+    input[type=range]{width:100%;accent-color:#2E75B6;}
+    .tolTop{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;}
+    .tolTop .v{font-size:16px;font-weight:800;color:#2E75B6;white-space:nowrap;}
+    .tolTop .v input{width:58px;border:2px solid #2E75B6;border-radius:6px;padding:3px 4px;font-size:16px;font-weight:800;color:#2E75B6;text-align:center;}
+    .tolScale{display:flex;justify-content:space-between;font-size:10px;color:#bbb;}
+    .tip{margin-top:12px;padding:12px;background:#fffde6;border-radius:8px;font-size:11px;color:#8B6914;line-height:1.6;border:1px solid #f0e0a0;}
+    .center{text-align:center;padding:40px 0;color:#888;}
+    .center .em{font-size:40px;margin-bottom:10px;}
+    /* 측정 화면 */
+    .banner{display:flex;align-items:center;gap:8px;background:#eaf1fb;border:1px solid #c3d6ef;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;font-weight:600;color:#1B3A5C;}
+    .banner .step-dot{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:#2E75B6;color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;}
+    .cvWrap{position:relative;margin-bottom:10px;border-radius:10px;overflow:hidden;border:2px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+    .cvWrap canvas{display:block;width:100%;height:auto;cursor:crosshair;touch-action:none;}
+    .cvHint{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.65);color:#fff;padding:3px 8px;border-radius:5px;font-size:10px;}
+    .scalePanel{background:#fff;border:1px solid #2E75B6;border-radius:10px;padding:12px;margin-bottom:10px;}
+    .scalePanel .row{display:flex;gap:8px;align-items:center;margin-top:8px;}
+    .scalePanel input{flex:1;padding:9px 11px;border:2px solid #ddd;border-radius:8px;font-size:16px;font-weight:700;text-align:center;}
+    .scalePanel button{padding:9px 16px;border-radius:8px;border:none;background:#2E75B6;color:#fff;font-weight:700;cursor:pointer;}
+    .miniRow{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+    .miniRow button{flex:1;min-width:80px;padding:9px;border-radius:7px;font-size:12px;cursor:pointer;background:#fff;border:1px solid #ddd;}
+    .miniRow button.go{background:#2E75B6;color:#fff;border:none;font-weight:700;}
+    .miniRow button.go:disabled{background:#ccc;}
+    .statusLine{font-size:11px;color:#666;margin-bottom:10px;line-height:1.6;}
+    .statusLine b{color:#1B3A5C;}
+    /* 결과 */
+    .verdict{border-radius:14px;padding:22px 16px;text-align:center;margin-bottom:16px;color:#fff;box-shadow:0 3px 14px rgba(0,0,0,.12);}
+    .verdict.pass{background:linear-gradient(135deg,#008844,#00cc66);}
+    .verdict.cond{background:linear-gradient(135deg,#d98a17,#f0b429);}
+    .verdict.fail{background:linear-gradient(135deg,#cc0000,#ff4444);}
+    .verdict .em{font-size:40px;}
+    .verdict .bg{font-size:26px;font-weight:800;margin-top:4px;}
+    .verdict .sub{font-size:13px;opacity:.95;margin-top:4px;}
+    .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+    .stat{border-radius:10px;padding:12px 6px;text-align:center;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+    .stat .n{font-size:20px;font-weight:800;color:#1B3A5C;}
+    .stat .u{font-size:11px;font-weight:700;color:#2E75B6;}
+    .stat .l{font-size:10px;color:#888;margin-top:2px;}
+    .snap{width:100%;border-radius:10px;border:1px solid #ddd;margin-bottom:16px;display:block;}
+    .tblWrap{background:#fff;border-radius:10px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+    .tblWrap .h{padding:8px 12px;background:#f5f7fa;font-size:12px;font-weight:600;color:#555;border-bottom:1px solid #eee;}
+    .tblScroll{overflow-x:auto;max-height:260px;overflow-y:auto;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th{padding:7px 8px;text-align:center;border-bottom:1px solid #eee;font-weight:600;background:#f9f9f9;position:sticky;top:0;}
+    td{padding:7px 8px;text-align:center;border-bottom:1px solid #f5f5f5;}
+    .note{padding:10px;background:#fffde6;border-radius:8px;border:1px solid #f0e0a0;font-size:10px;color:#8B6914;line-height:1.5;margin-bottom:14px;}
+    .std{background:#fff;border-radius:10px;padding:12px;margin-bottom:16px;font-size:11px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+    .std .h{font-weight:700;color:#555;margin-bottom:6px;}
+    .std table{font-size:10.5px;}
+    .backLink{display:block;text-align:center;padding:14px;color:#888;font-size:12px;text-decoration:none;}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="hd">
+      <div class="sm">GSS 품질안전그룹</div>
+      <div class="tt">EPDM 선형(직선) 검측기</div>
+    </div>
+    <div class="tabs">
+      <button data-step="1" class="on">1. 사진·설정</button>
+      <button data-step="2">2. 측정</button>
+      <button data-step="3">3. 판정</button>
+    </div>
+    <div class="body">
+      <!-- STEP 1 -->
+      <div id="step1">
+        <div class="card">
+          <div class="tolTop"><span class="lab" style="margin:0">선형 허용 기준 (오류 범위)</span><span class="v"><input type="number" id="tolNum" min="1" max="20" step="0.5" value="3" inputmode="decimal" />mm</span></div>
+          <input type="range" id="tol" min="1" max="20" step="0.5" value="3" />
+          <div class="tolScale"><span>엄격 1mm</span><span>10mm</span><span>완화 20mm</span></div>
+          <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.5;">이 값(mm)을 넘는 편차를 <b>불량 지점</b>으로 봅니다. 슬라이더로 조절하거나 숫자를 직접 입력하세요. <b>현장 권장 기본값은 2~3mm</b>입니다. 결과 화면에서도 바꿀 수 있습니다.</div>
+        </div>
+        <div class="card">
+          <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:600;color:#1B3A5C;cursor:pointer;">
+            <input type="checkbox" id="autoRef" checked style="width:20px;height:20px;flex:0 0 auto;margin-top:1px;" />
+            <span>기준선 자동 맞춤 <span style="color:#2E75B6">(권장)</span><br><span style="font-weight:400;color:#888;font-size:11px;">실제 경계선만 따라 찍으면, 앱이 가장 곧은 직선을 자동으로 긋고 각 점의 벗어난 정도(mm)를 계산합니다.</span></span>
+          </label>
+          <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.5;border-top:1px dashed #eee;padding-top:8px;">끄면 → 내가 <b>기준 직선(2점)</b>을 직접 긋고, 그 선과 실제 경계의 편차를 잽니다.</div>
+        </div>
+        <div class="bigRow">
+          <button class="btnCam" data-open="cam">📷 카메라 촬영</button>
+          <button class="btnGal" data-open="gal">🖼️ 갤러리 선택</button>
+        </div>
+        <div class="tip"><b>측정 팁:</b> 경계선을 <b>바로 위에서 수직</b>으로 촬영(비스듬히 X). 줄자나 아는 치수(경계석·타일)를 함께 찍으면 축척을 잡기 쉽습니다. 밝고 그림자 없는 상태 권장.</div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="step2" class="hide">
+        <div id="s2empty" class="center">
+          <div class="em">📷</div>
+          <div style="margin-bottom:16px">사진을 촬영하거나 선택하세요</div>
+          <div class="bigRow" style="justify-content:center">
+            <button class="btnCam" data-open="cam" style="flex:0 0 auto;padding:10px 24px">📷 카메라</button>
+            <button class="btnGal" data-open="gal" style="flex:0 0 auto;padding:10px 24px">🖼️ 갤러리</button>
+          </div>
+        </div>
+        <div id="s2main" class="hide">
+          <div class="banner"><span class="step-dot" id="bnNo">1</span><span id="bnTxt">축척: 실제 거리를 아는 두 점을 탭하세요</span></div>
+
+          <div class="cvWrap">
+            <canvas id="cv"></canvas>
+            <div class="cvHint" id="cvHint">👆 화면을 탭</div>
+          </div>
+
+          <div class="scalePanel hide" id="scalePanel">
+            <div style="font-size:12px;font-weight:600;color:#1B3A5C;">두 점의 실제 거리(mm)를 입력하세요</div>
+            <div class="row">
+              <input type="number" id="scaleMm" placeholder="예: 1000" min="1" />
+              <button id="scaleOk">확인</button>
+            </div>
+          </div>
+
+          <div class="statusLine" id="statusLine"></div>
+
+          <div class="miniRow">
+            <button id="redoScale">① 축척 다시</button>
+            <button id="redoRef">② 기준선 다시</button>
+            <button id="clearEdge">③ 경계 지우기</button>
+          </div>
+          <div class="miniRow">
+            <button data-open="gal">🖼️ 다른사진</button>
+            <button id="toResult" class="go" disabled>📊 결과 보기</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="step3" class="hide">
+        <div id="s3empty" class="center">
+          <div class="em">📊</div>
+          <div>측정 데이터가 없습니다</div>
+          <button id="toMeasure" style="margin-top:12px;padding:8px 20px;background:#2E75B6;color:#fff;border:none;border-radius:8px;cursor:pointer">측정하러 가기</button>
+        </div>
+        <div id="s3main" class="hide"></div>
+      </div>
+
+    </div>
+    <input id="camInput" type="file" accept="image/*" capture="environment" style="display:none" />
+    <input id="galInput" type="file" accept="image/*" style="display:none" />
+    <a class="backLink" href="index.html">🏠 홈</a>
+  </div>
+
+  <script>
+  (function(){
+    "use strict";
+    var $=function(s){return document.querySelector(s);};
+    var st={ base:3.0, img:null, mode:"scale", autoRef:true,
+             scalePts:[], scaleMm:null, mmPerPx:null,
+             refPts:[], edgePts:[], results:null };
+
+    // ---- 기하 ----
+    function dist(a,b){return Math.sqrt(Math.pow(a.x-b.x,2)+Math.pow(a.y-b.y,2));}
+    function footAndDev(P,A,B){
+      var vx=B.x-A.x, vy=B.y-A.y, len2=vx*vx+vy*vy;
+      var t = len2? ((P.x-A.x)*vx+(P.y-A.y)*vy)/len2 : 0;
+      var fx=A.x+t*vx, fy=A.y+t*vy;
+      return { foot:{x:fx,y:fy}, dev:Math.sqrt(Math.pow(P.x-fx,2)+Math.pow(P.y-fy,2)) };
+    }
+    // 점들에 가장 잘 맞는 직선(총최소제곱/PCA) — 수직선도 처리
+    function fitLine(pts){
+      var n=pts.length; if(n<2) return null;
+      var mx=0,my=0; pts.forEach(function(p){mx+=p.x;my+=p.y;}); mx/=n; my/=n;
+      var sxx=0,syy=0,sxy=0;
+      pts.forEach(function(p){ var dx=p.x-mx,dy=p.y-my; sxx+=dx*dx; syy+=dy*dy; sxy+=dx*dy; });
+      var theta=0.5*Math.atan2(2*sxy, sxx-syy);
+      var ux=Math.cos(theta), uy=Math.sin(theta);
+      var tmin=Infinity,tmax=-Infinity;
+      pts.forEach(function(p){ var t=(p.x-mx)*ux+(p.y-my)*uy; if(t<tmin)tmin=t; if(t>tmax)tmax=t; });
+      return { A:{x:mx+ux*tmin,y:my+uy*tmin}, B:{x:mx+ux*tmax,y:my+uy*tmax} };
+    }
+    // 현재 기준선: 자동이면 경계점에 맞춘 직선, 수동이면 사용자가 그은 2점
+    function getRef(){
+      if(st.autoRef){ return st.edgePts.length>=2 ? fitLine(st.edgePts) : null; }
+      return st.refPts.length===2 ? {A:st.refPts[0],B:st.refPts[1]} : null;
+    }
+
+    // ---- 설정: 허용 기준(오류 범위) 직접 변경 ----
+    // 슬라이더와 숫자칸은 같은 범위(1~20mm)라 항상 같은 값을 가리킵니다.
+    function setBase(v, src){
+      if(isNaN(v)) return;
+      v=Math.max(1,Math.min(20,v));
+      st.base=v;
+      // 편집 중인 입력창은 덮지 않고, 나머지는 모두 같은 값으로 동기화
+      var t=$("#tol"); if(t && src!=="tol") t.value=v;
+      var tn=$("#tolNum"); if(tn && src!=="tolNum") tn.value=v;
+      var rs=$("#resTol"); if(rs && src!=="resTol") rs.value=v;
+      var rn=$("#resTolNum"); if(rn && src!=="resTolNum") rn.value=v;
+      // 이미 측정했으면 즉시 재판정
+      if(st.devs){ judge(); var s3=$("#s3main"); if(s3 && !s3.classList.contains("hide")) updateJudgement(); }
+    }
+    // 입력창을 벗어나면(blur) 정규화해서 슬라이더와 정확히 일치시킴
+    function normalizeField(el){ if(el) el.value=st.base; }
+    $("#tol").addEventListener("input",function(e){ setBase(parseFloat(e.target.value),"tol"); });
+    $("#tolNum").addEventListener("input",function(e){ setBase(parseFloat(e.target.value),"tolNum"); });
+    $("#tolNum").addEventListener("change",function(){ normalizeField(this); });
+
+    // ---- 기준선 자동/수동 토글 ----
+    function updateModeUI(){ var rr=$("#redoRef"); if(rr) rr.style.display = st.autoRef ? "none" : ""; }
+    $("#autoRef").addEventListener("change",function(){
+      st.autoRef=this.checked;
+      if(st.mmPerPx){ st.mode = st.autoRef ? "edge" : (st.refPts.length===2?"edge":"ref"); }
+      updateModeUI();
+      var s2=$("#step2"); if(s2 && !s2.classList.contains("hide")){ draw(); updateBanner(); updateStatus(); updateResultBtn(); }
+    });
+
+    // ---- 파일 ----
+    var camInput=$("#camInput"), galInput=$("#galInput");
+    document.querySelectorAll("[data-open]").forEach(function(bt){
+      bt.addEventListener("click",function(){ (bt.getAttribute("data-open")==="cam"?camInput:galInput).click(); });
+    });
+    function onFile(e){
+      var f=e.target.files&&e.target.files[0]; if(!f) return;
+      var reader=new FileReader();
+      reader.onload=function(ev){
+        var img=new Image();
+        img.onload=function(){
+          var MAX=1400, scale=Math.min(1,MAX/Math.max(img.width,img.height));
+          var c=document.createElement("canvas");
+          c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+          c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+          st.img=c; resetAll(); goStep(2);
+        };
+        img.src=ev.target.result;
+      };
+      reader.readAsDataURL(f); e.target.value="";
+    }
+    camInput.addEventListener("change",onFile);
+    galInput.addEventListener("change",onFile);
+
+    function resetAll(){ st.mode="scale"; st.scalePts=[]; st.scaleMm=null; st.mmPerPx=null; st.refPts=[]; st.edgePts=[]; st.results=null; }
+
+    // ---- 스텝 ----
+    function goStep(n){
+      $("#step1").classList.toggle("hide",n!==1);
+      $("#step2").classList.toggle("hide",n!==2);
+      $("#step3").classList.toggle("hide",n!==3);
+      document.querySelectorAll(".tabs button").forEach(function(bt){ bt.classList.toggle("on",+bt.getAttribute("data-step")===n); });
+      if(n===2) renderStep2();
+      if(n===3) renderResult();
+    }
+    document.querySelectorAll(".tabs button").forEach(function(bt){ bt.addEventListener("click",function(){ goStep(+bt.getAttribute("data-step")); }); });
+    $("#toMeasure").addEventListener("click",function(){ goStep(2); });
+
+    // ---- 캔버스 ----
+    var cv=$("#cv");
+    function renderStep2(){
+      if(!st.img){ $("#s2empty").classList.remove("hide"); $("#s2main").classList.add("hide"); return; }
+      $("#s2empty").classList.add("hide"); $("#s2main").classList.remove("hide");
+      cv.width=st.img.width; cv.height=st.img.height;
+      updateModeUI(); draw(); updateBanner(); updateStatus(); updateResultBtn();
+    }
+    function draw(){
+      var ctx=cv.getContext("2d");
+      ctx.drawImage(st.img,0,0);
+      var sf=cv.width/360; // 화면 크기에 맞춘 선/점 크기
+      // 축척선(주황 점선)
+      if(st.scalePts.length){ drawPts(ctx,st.scalePts,"#f5a623",sf); if(st.scalePts.length===2) drawSeg(ctx,st.scalePts[0],st.scalePts[1],"#f5a623",sf,true); }
+      var ref=getRef();
+      // 수동 기준점 표시
+      if(!st.autoRef && st.refPts.length){ drawPts(ctx,st.refPts,"#2E75B6",sf); }
+      // 기준선(파랑 실선) — 자동/수동 공통
+      if(ref){ drawSeg(ctx,ref.A,ref.B,"#2E75B6",sf,false); }
+      // 실제 경계 궤적(우둘투둘) — 점들을 찍은 순서대로 연결
+      if(st.edgePts.length>=2){
+        ctx.strokeStyle="rgba(255,255,255,.8)"; ctx.lineWidth=1.5*sf; ctx.setLineDash([]);
+        ctx.beginPath();
+        st.edgePts.forEach(function(P,i){ i?ctx.lineTo(P.x,P.y):ctx.moveTo(P.x,P.y); });
+        ctx.stroke();
+      }
+      // 경계 점 + 편차선 + mm 라벨
+      st.edgePts.forEach(function(P){
+        if(ref && st.mmPerPx){
+          var fd=footAndDev(P,ref.A,ref.B);
+          var devMm=fd.dev*st.mmPerPx, bad=devMm>st.base, col=bad?"#e53935":"#00c853";
+          ctx.strokeStyle=col; ctx.lineWidth=2*sf;
+          ctx.beginPath(); ctx.moveTo(P.x,P.y); ctx.lineTo(fd.foot.x,fd.foot.y); ctx.stroke();
+          dot(ctx,P,col,sf);
+          var label=(devMm<10?devMm.toFixed(1):Math.round(devMm))+"mm";
+          ctx.font="bold "+(13*sf)+"px sans-serif"; ctx.textBaseline="middle";
+          var tw=ctx.measureText(label).width, lx=P.x+9*sf, ly=P.y;
+          ctx.fillStyle="rgba(0,0,0,.65)"; ctx.fillRect(lx-4*sf, ly-10*sf, tw+8*sf, 20*sf);
+          ctx.fillStyle=bad?"#ff8a80":"#b9f6ca"; ctx.fillText(label, lx, ly);
+        } else {
+          dot(ctx,P,"#00c853",sf);
+        }
+      });
+    }
+    function dot(ctx,P,col,sf){ ctx.fillStyle=col; ctx.strokeStyle="#fff"; ctx.lineWidth=2*sf; ctx.beginPath(); ctx.arc(P.x,P.y,5*sf,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
+    function drawPts(ctx,pts,col,sf,lab){ pts.forEach(function(P){ ctx.fillStyle=col; ctx.strokeStyle="#fff"; ctx.lineWidth=2*sf; ctx.beginPath(); ctx.arc(P.x,P.y,7*sf,0,Math.PI*2); ctx.fill(); ctx.stroke(); }); }
+    function drawSeg(ctx,a,b,col,sf,dashed){ ctx.strokeStyle=col; ctx.lineWidth=3*sf; ctx.setLineDash(dashed?[10*sf,6*sf]:[]); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.setLineDash([]); }
+
+    function canvasPt(clientX,clientY){
+      var r=cv.getBoundingClientRect();
+      return { x:(clientX-r.left)*(cv.width/r.width), y:(clientY-r.top)*(cv.height/r.height) };
+    }
+    function onTap(clientX,clientY){
+      var P=canvasPt(clientX,clientY);
+      if(st.mode==="scale"){
+        if(st.scalePts.length<2){ st.scalePts.push(P); if(st.scalePts.length===2){ $("#scalePanel").classList.remove("hide"); } }
+      } else if(st.mode==="ref"){
+        if(st.refPts.length<2){ st.refPts.push(P); if(st.refPts.length===2){ st.mode="edge"; } }
+      } else if(st.mode==="edge"){
+        st.edgePts.push(P);
+      }
+      draw(); updateBanner(); updateStatus(); updateResultBtn();
+    }
+    cv.addEventListener("click",function(e){ onTap(e.clientX,e.clientY); });
+    cv.addEventListener("touchend",function(e){ if(e.changedTouches&&e.changedTouches[0]){ e.preventDefault(); onTap(e.changedTouches[0].clientX,e.changedTouches[0].clientY); } },{passive:false});
+
+    // ---- 축척 확인 ----
+    $("#scaleOk").addEventListener("click",function(){
+      var mm=parseFloat($("#scaleMm").value);
+      if(!mm||mm<=0||st.scalePts.length<2){ alert("실제 거리(mm)를 숫자로 입력하세요."); return; }
+      st.scaleMm=mm; st.mmPerPx=mm/dist(st.scalePts[0],st.scalePts[1]);
+      $("#scalePanel").classList.add("hide"); st.mode = st.autoRef ? "edge" : "ref";
+      draw(); updateBanner(); updateStatus(); updateResultBtn();
+    });
+
+    // ---- 다시/지우기 ----
+    $("#redoScale").addEventListener("click",function(){ st.scalePts=[]; st.scaleMm=null; st.mmPerPx=null; st.mode="scale"; $("#scalePanel").classList.add("hide"); $("#scaleMm").value=""; draw(); updateBanner(); updateStatus(); updateResultBtn(); });
+    $("#redoRef").addEventListener("click",function(){ st.refPts=[]; if(st.mmPerPx) st.mode="ref"; draw(); updateBanner(); updateStatus(); updateResultBtn(); });
+    $("#clearEdge").addEventListener("click",function(){ st.edgePts=[]; if(st.mmPerPx){ st.mode = st.autoRef ? "edge" : (st.refPts.length===2?"edge":"ref"); } draw(); updateBanner(); updateStatus(); updateResultBtn(); });
+
+    function updateBanner(){
+      var no="1", txt="";
+      if(st.mode==="scale"){ no="1"; txt = st.scalePts.length<2 ? "① 축척: 실제 거리를 아는 두 점을 탭하세요 ("+st.scalePts.length+"/2)" : "아래에 두 점의 실제 거리(mm)를 입력하세요"; }
+      else if(st.mode==="ref"){ no="2"; txt="② 기준선: 원래 그으려던 직선의 양 끝 두 점을 탭하세요 ("+st.refPts.length+"/2)"; }
+      else {
+        no = st.autoRef ? "②" : "③";
+        txt = st.autoRef
+          ? "실제 경계선을 따라 위→아래로 3곳 이상 콕콕 찍으세요. 앱이 곧은 직선을 자동으로 긋고 편차(mm)를 표시합니다. ("+st.edgePts.length+"곳)"
+          : "③ 경계: 실제 경계를 따라 점을 찍으세요. 기준선과의 편차를 잽니다. ("+st.edgePts.length+"곳)";
+      }
+      $("#bnNo").textContent=no; $("#bnTxt").textContent=txt;
+    }
+    function updateStatus(){
+      var s=[];
+      s.push("축척: "+(st.mmPerPx? "설정됨":"<b>미설정</b>"));
+      s.push("기준선: "+(st.autoRef? "자동": (st.refPts.length===2? "설정됨":"<b>미설정</b>")));
+      s.push("경계 점: <b>"+st.edgePts.length+"</b>곳");
+      $("#statusLine").innerHTML=s.join(" · ");
+    }
+    function updateResultBtn(){
+      var ok = st.mmPerPx && ( st.autoRef ? st.edgePts.length>=3 : (st.refPts.length===2 && st.edgePts.length>=2) );
+      $("#toResult").disabled = !ok;
+    }
+    $("#toResult").addEventListener("click",function(){ compute(); goStep(3); });
+
+    // ---- 계산 ----
+    function judge(){
+      var devs=st.devs||[], n=devs.length, base=st.base;
+      var Dmax=devs.reduce(function(m,d){return Math.max(m,d);},0);
+      var over=devs.filter(function(d){return d>base;}).length;
+      var R=n? over/n*100 : 0;
+      var Srms=n? Math.sqrt(devs.reduce(function(a,d){return a+d*d;},0)/n) : 0;
+      var verdict, cls, em;
+      if(Dmax<=base && R<5 && Srms<=base/2){ verdict="합격"; cls="pass"; em="✅"; }
+      else if(Dmax<=base*1.7 && R<=10 && Srms<=base*0.85){ verdict="조건부"; cls="cond"; em="⚠️"; }
+      else { verdict="불량"; cls="fail"; em="❌"; }
+      st.results={ devs:devs, n:n, Dmax:Dmax, R:R, Srms:Srms, over:over, verdict:verdict, cls:cls, em:em, base:base };
+    }
+    function compute(){
+      var ref=getRef(), devs=[];
+      if(ref){ st.edgePts.forEach(function(P){ devs.push(footAndDev(P,ref.A,ref.B).dev*st.mmPerPx); }); }
+      st.devs=devs; judge();
+    }
+
+    function renderResult(){
+      var empty=$("#s3empty"), main=$("#s3main");
+      if(!st.results){ empty.classList.remove("hide"); main.classList.add("hide"); return; }
+      empty.classList.add("hide"); main.classList.remove("hide");
+      main.innerHTML=
+        '<div class="card" style="margin-bottom:12px"><div class="tolTop"><span class="lab" style="margin:0">허용 기준 (오류 범위) — 바꾸면 즉시 재판정</span>'+
+          '<span class="v"><input type="number" id="resTolNum" min="1" max="20" step="0.5" inputmode="decimal" />mm</span></div>'+
+          '<input type="range" id="resTol" min="1" max="20" step="0.5" />'+
+          '<div class="tolScale"><span>엄격 1mm</span><span>10mm</span><span>완화 20mm</span></div></div>'+
+        '<div id="rVerdict"></div>'+
+        '<div id="rStats" class="stats"></div>'+
+        (st.img? '<img class="snap" id="rSnap" alt="검측 사진" />':'')+
+        '<div class="tblWrap"><div class="h">지점별 편차 (mm)</div><div class="tblScroll"><table>'+
+          '<thead><tr><th>지점</th><th>편차(mm)</th><th>판정</th></tr></thead><tbody id="rBody"></tbody></table></div></div>'+
+        '<div class="std"><div class="h" id="rStdH"></div><div class="tblScroll"><table>'+
+          '<thead><tr><th>판정</th><th>최대 편차</th><th>불량 비율</th><th>울음(RMS)</th></tr></thead><tbody id="rStdBody"></tbody></table></div></div>'+
+        '<div class="note">⚠ 카메라 기반 간이 측정입니다. 비스듬히 촬영하면 mm 오차가 커지므로 <b>수직 촬영</b>이 중요하며, 축척 기준의 정확도에 결과가 좌우됩니다. 현장 1차 스크리닝 용도로 사용하세요.</div>';
+      var rn=$("#resTolNum"), rs=$("#resTol");
+      rn.value=st.base; rs.value=st.base;
+      rn.addEventListener("input",function(){ setBase(parseFloat(rn.value),"resTolNum"); });
+      rn.addEventListener("change",function(){ normalizeField(rn); });
+      rs.addEventListener("input",function(){ setBase(parseFloat(rs.value),"resTol"); });
+      updateJudgement();
+    }
+
+    function updateJudgement(){
+      if(!st.results) return;
+      var r=st.results;
+      $("#rVerdict").innerHTML='<div class="verdict '+r.cls+'"><div class="em">'+r.em+'</div>'+
+        '<div class="bg">'+r.verdict+'</div><div class="sub">허용 '+r.base.toFixed(1)+'mm 기준 · 측정 '+r.n+'곳</div></div>';
+      $("#rStats").innerHTML=
+        '<div class="stat"><div class="n">'+r.Dmax.toFixed(1)+'<span class="u">mm</span></div><div class="l">최대 편차</div></div>'+
+        '<div class="stat"><div class="n">'+r.R.toFixed(0)+'<span class="u">%</span></div><div class="l">불량 비율<br>('+r.over+'/'+r.n+'곳)</div></div>'+
+        '<div class="stat"><div class="n">'+r.Srms.toFixed(1)+'<span class="u">mm</span></div><div class="l">울음(RMS)</div></div>';
+      var rows="";
+      r.devs.forEach(function(d,i){
+        var bad=d>r.base;
+        rows+='<tr><td style="font-weight:600">'+(i+1)+'</td>'+
+          '<td style="font-weight:700;color:'+(bad?"#c00":"#080")+'">'+d.toFixed(1)+'</td>'+
+          '<td style="font-weight:800;color:'+(bad?"#c00":"#080")+'">'+(bad?"초과":"양호")+'</td></tr>';
+      });
+      var rb=$("#rBody"); if(rb) rb.innerHTML=rows;
+      var sh=$("#rStdH"); if(sh) sh.textContent="판정 기준 (허용 "+r.base.toFixed(1)+"mm 기준)";
+      var sb=$("#rStdBody"); if(sb) sb.innerHTML=
+        '<tr><td style="color:#080;font-weight:700">합격 ◎</td><td>≤ '+r.base.toFixed(1)+'mm</td><td>&lt; 5%</td><td>≤ '+(r.base/2).toFixed(1)+'mm</td></tr>'+
+        '<tr><td style="color:#d98a17;font-weight:700">조건부 ○</td><td>≤ '+(r.base*1.7).toFixed(1)+'mm</td><td>≤ 10%</td><td>≤ '+(r.base*0.85).toFixed(1)+'mm</td></tr>'+
+        '<tr><td style="color:#c00;font-weight:700">불량 ✕</td><td>초과</td><td>초과</td><td>초과</td></tr>';
+      // 사진 오버레이(현재 허용 기준 색상 반영) 갱신
+      var snap=$("#rSnap");
+      if(snap && st.img){ cv.width=st.img.width; cv.height=st.img.height; draw(); snap.src=cv.toDataURL("image/jpeg",0.85); }
+    }
+
+    // 초기
+    $("#tolNum").value=st.base; $("#tol").value=st.base;
+  })();
+  </script>
+</body>
+</html>
