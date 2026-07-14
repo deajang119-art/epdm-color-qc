@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>EPDM 색상 QC 검측기</title>
+  <meta name="description" content="현장에서 사진을 촬영·불러와 EPDM 탄성포장 색상을 측정하고, 설계 지정 색상과의 색차(허용오차·ΔE)로 합격/불합격을 판정하는 색상 품질검측 도구입니다." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    body{margin:0;font-family:'Pretendard','Noto Sans KR',system-ui,sans-serif;background:#f4f5f7;}
+    #app{background:#f4f5f7;min-height:100vh;max-width:480px;margin:0 auto;}
+    button{font-family:inherit;}
+    input{font-family:inherit;}
+    /* 헤더 */
+    .hd{background:linear-gradient(135deg,#1B3A5C,#2E75B6);padding:14px 18px;color:#fff;}
+    .hd .sm{font-size:10px;letter-spacing:2px;opacity:.6;}
+    .hd .tt{font-size:18px;font-weight:800;margin-top:2px;}
+    /* 스텝 탭 */
+    .tabs{display:flex;background:#fff;border-bottom:1px solid #e8e8e8;}
+    .tabs button{flex:1;padding:10px 0;border:none;font-size:13px;cursor:pointer;background:#f9f9f9;border-bottom:3px solid transparent;color:#999;}
+    .tabs button.on{background:#fff;border-bottom-color:#2E75B6;font-weight:700;color:#1B3A5C;}
+    .body{padding:16px 18px;}
+    .hide{display:none!important;}
+    .card{background:#fff;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+    .card .lab{font-size:12px;font-weight:600;color:#888;margin-bottom:6px;}
+    /* 설계 색상 미리보기 */
+    .preview{border-radius:14px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+    .preview .in{padding:22px 16px;text-align:center;transition:background .3s;}
+    .preview .t1{font-size:11px;opacity:.7;}
+    .preview .t2{font-size:26px;font-weight:800;font-family:monospace;margin-top:2px;}
+    .preview .t3{font-size:12px;margin-top:2px;}
+    /* 입력 */
+    .hexInput{width:100%;padding:8px 10px;border:2px solid #ddd;border-radius:8px;font-size:18px;font-family:monospace;font-weight:700;}
+    .rgbRow{display:flex;gap:8px;}
+    .rgbRow .col{flex:1;text-align:center;}
+    .rgbRow .cl{font-size:13px;font-weight:700;margin-bottom:3px;}
+    .rgbRow input{width:100%;padding:6px 2px;border-radius:6px;font-size:16px;text-align:center;font-weight:700;border:2px solid #ccc;}
+    /* 슬라이더 */
+    .tolTop{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+    .tolTop .v{font-size:18px;font-weight:800;color:#2E75B6;}
+    input[type=range]{width:100%;accent-color:#2E75B6;}
+    .tolScale{display:flex;justify-content:space-between;font-size:10px;color:#bbb;}
+    /* 색상칩 */
+    .chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+    .chips button{padding:0;border-radius:8px;cursor:pointer;background:none;overflow:hidden;border:2px solid #e0e0e0;}
+    .chips button.on{border:3px solid #2E75B6;}
+    .chips .sw{height:32px;}
+    .chips .nm{font-size:10px;padding:3px 0;background:#fafafa;color:#555;}
+    /* 큰 버튼 */
+    .bigRow{display:flex;gap:8px;}
+    .bigRow button{flex:1;padding:13px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;}
+    .btnCam{background:linear-gradient(135deg,#1B3A5C,#2E75B6);color:#fff;border:none;}
+    .btnGal{background:#fff;color:#1B3A5C;border:2px solid #2E75B6;}
+    .tip{margin-top:12px;padding:12px;background:#fffde6;border-radius:8px;font-size:11px;color:#8B6914;line-height:1.6;border:1px solid #f0e0a0;}
+    /* 캔버스 */
+    .cvWrap{position:relative;margin-bottom:10px;border-radius:10px;overflow:hidden;border:2px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+    .cvWrap canvas{display:block;width:100%;height:auto;cursor:crosshair;touch-action:none;}
+    .marker{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4);font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+    .cvHint{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.65);color:#fff;padding:3px 8px;border-radius:5px;font-size:10px;}
+    .curBar{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:6px 10px;background:#fff;border-radius:8px;border:1px solid #e0e0e0;}
+    .curBar .sw{width:28px;height:28px;border-radius:6px;border:1px solid #ccc;flex-shrink:0;}
+    .curBar .tx{font-size:12px;}
+    .miniRow{display:flex;gap:6px;margin-bottom:12px;}
+    .miniRow button{flex:1;padding:9px;border-radius:7px;font-size:12px;cursor:pointer;background:#fff;border:1px solid #ddd;}
+    .miniRow button.go{background:#2E75B6;color:#fff;border:none;font-weight:700;}
+    .miniRow button.go:disabled{background:#ccc;}
+    .sList{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+    .sList .h{padding:8px 12px;background:#f5f7fa;font-size:12px;font-weight:600;color:#555;border-bottom:1px solid #eee;}
+    .sItem{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #f5f5f5;}
+    .sItem .sw{width:30px;height:30px;border-radius:6px;border:1px solid #ddd;flex-shrink:0;}
+    .sItem .h1{font-size:12px;font-weight:600;font-family:monospace;}
+    .sItem .h2{font-size:10px;color:#999;}
+    .badge{padding:3px 8px;border-radius:5px;font-size:11px;font-weight:800;}
+    .badge.p{background:#e6ffe6;color:#080;}
+    .badge.f{background:#ffe6e6;color:#c00;}
+    .center{text-align:center;padding:40px 0;color:#888;}
+    .center .em{font-size:40px;margin-bottom:10px;}
+    /* 결과 */
+    .verdict{border-radius:14px;padding:22px 16px;text-align:center;margin-bottom:16px;color:#fff;box-shadow:0 3px 14px rgba(0,0,0,.12);}
+    .verdict.pass{background:linear-gradient(135deg,#008844,#00cc66);}
+    .verdict.fail{background:linear-gradient(135deg,#cc0000,#ff4444);}
+    .verdict .em{font-size:40px;}
+    .verdict .bg{font-size:26px;font-weight:800;margin-top:4px;}
+    .verdict .sub{font-size:13px;opacity:.9;margin-top:4px;}
+    .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+    .stat{border-radius:10px;padding:12px;text-align:center;background:#fff;}
+    .stat .n{font-size:22px;font-weight:800;}
+    .stat .l{font-size:10px;}
+    .cmp{display:flex;border-radius:10px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+    .cmp .c{flex:1;padding:16px 10px;text-align:center;}
+    .cmp .t1{font-size:10px;opacity:.7;}
+    .cmp .t2{font-size:13px;font-weight:700;font-family:monospace;}
+    .tblWrap{background:#fff;border-radius:10px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+    .tblWrap .h{padding:8px 12px;background:#f5f7fa;font-size:12px;font-weight:600;color:#555;border-bottom:1px solid #eee;}
+    .tblScroll{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;font-size:11px;}
+    th{padding:6px 4px;text-align:center;border-bottom:1px solid #eee;font-weight:600;background:#f9f9f9;}
+    td{padding:6px 4px;text-align:center;}
+    .guide{background:#fff;border-radius:10px;padding:12px;margin-bottom:16px;font-size:11px;line-height:1.8;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+    .guide .gh{font-size:12px;font-weight:600;color:#555;margin-bottom:4px;}
+    .guide .gr{display:flex;align-items:center;gap:6px;}
+    .guide .gd{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+    .note{padding:10px;background:#fffde6;border-radius:8px;border:1px solid #f0e0a0;font-size:10px;color:#8B6914;line-height:1.5;}
+    .backLink{display:block;text-align:center;padding:14px;color:#888;font-size:12px;text-decoration:none;}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="hd">
+      <div class="sm">GSS 품질안전그룹</div>
+      <div class="tt">EPDM 색상 QC 검측기</div>
+    </div>
+    <div class="tabs">
+      <button data-step="1" class="on">1. 색상설정</button>
+      <button data-step="2">2. 촬영·측정</button>
+      <button data-step="3">3. 판정결과</button>
+    </div>
+    <div class="body">
+      <!-- STEP 1 -->
+      <div id="step1">
+        <div class="preview"><div class="in" id="pvIn">
+          <div class="t1">설계 지정 색상</div>
+          <div class="t2" id="pvHex">#2E8B57</div>
+          <div class="t3" id="pvRgb">R:46 G:139 B:87</div>
+        </div></div>
+
+        <div class="card">
+          <div class="lab">HEX 코드 입력</div>
+          <input type="text" id="hexInput" class="hexInput" value="#2E8B57" maxlength="7" />
+        </div>
+
+        <div class="card">
+          <div class="lab">RGB 값 입력</div>
+          <div class="rgbRow">
+            <div class="col"><div class="cl" style="color:#e44">R</div><input type="number" id="inR" min="0" max="255" value="46" style="border-color:#e4444433"/></div>
+            <div class="col"><div class="cl" style="color:#4a4">G</div><input type="number" id="inG" min="0" max="255" value="139" style="border-color:#44aa4433"/></div>
+            <div class="col"><div class="cl" style="color:#44f">B</div><input type="number" id="inB" min="0" max="255" value="87" style="border-color:#4444ff33"/></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="tolTop"><span class="lab" style="margin:0">허용 오차</span><span class="v" id="tolVal">15%</span></div>
+          <input type="range" id="tol" min="5" max="30" value="15" />
+          <div class="tolScale"><span>엄격 5%</span><span>표준 15%</span><span>완화 30%</span></div>
+        </div>
+
+        <div class="card">
+          <div class="lab">EPDM 기본 색상표 (터치하면 자동 입력)</div>
+          <div class="chips" id="chips"></div>
+        </div>
+
+        <div class="bigRow">
+          <button class="btnCam" data-open="cam">📷 카메라 촬영</button>
+          <button class="btnGal" data-open="gal">🖼️ 갤러리 선택</button>
+        </div>
+        <div class="tip"><b>측정 팁:</b> 그늘에서 촬영, 플래시 끄기, 30~50cm 거리에서 수직 촬영, 건조 상태, 3~5곳 샘플링</div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="step2" class="hide">
+        <div id="s2empty" class="center">
+          <div class="em">📷</div>
+          <div style="margin-bottom:16px">사진을 촬영하거나 선택하세요</div>
+          <div class="bigRow" style="justify-content:center">
+            <button class="btnCam" data-open="cam" style="flex:0 0 auto;padding:10px 24px">📷 카메라</button>
+            <button class="btnGal" data-open="gal" style="flex:0 0 auto;padding:10px 24px">🖼️ 갤러리</button>
+          </div>
+        </div>
+        <div id="s2main" class="hide">
+          <div class="curBar">
+            <div class="sw" id="curSw"></div>
+            <div class="tx"><span style="color:#888">설계: </span><b style="font-family:monospace" id="curHex">#2E8B57</b><span style="color:#888" id="curTol"> | 허용 15%</span></div>
+          </div>
+          <div class="cvWrap">
+            <canvas id="cv"></canvas>
+            <div id="markers"></div>
+            <div class="cvHint">👆 측정할 부위를 터치</div>
+          </div>
+          <div class="miniRow">
+            <button data-open="cam">📷 재촬영</button>
+            <button data-open="gal">🖼️ 다른사진</button>
+            <button id="resetS">🗑 초기화</button>
+            <button id="toResult" class="go" disabled>📊 결과</button>
+          </div>
+          <div class="sList hide" id="sList">
+            <div class="h" id="sListH">측정 0건</div>
+            <div id="sItems"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="step3" class="hide">
+        <div id="s3empty" class="center">
+          <div class="em">📊</div>
+          <div>측정 데이터가 없습니다</div>
+          <button id="toMeasure" style="margin-top:12px;padding:8px 20px;background:#2E75B6;color:#fff;border:none;border-radius:8px;cursor:pointer">측정하러 가기</button>
+        </div>
+        <div id="s3main" class="hide"></div>
+      </div>
+
+      <a class="backLink" href="index.html">🏠 홈</a>
+    </div>
+
+    <input id="camInput" type="file" accept="image/*" capture="environment" style="display:none" />
+    <input id="galInput" type="file" accept="image/*" style="display:none" />
+  </div>
+
+  <script>
+  (function(){
+    "use strict";
+    var $=function(s){return document.querySelector(s);};
+    var COLORS=[
+      {name:"녹색",hex:"#2E8B57"},{name:"연두",hex:"#9ACD32"},{name:"노랑",hex:"#FFD700"},
+      {name:"빨강",hex:"#DC143C"},{name:"파랑",hex:"#1E90FF"},{name:"주황",hex:"#FF8C00"},
+      {name:"갈색",hex:"#8B6914"},{name:"흑색",hex:"#2C2C2C"},{name:"회색",hex:"#808080"},
+      {name:"베이지",hex:"#D2B48C"}
+    ];
+    // 상태
+    var st={ hex:"#2E8B57", r:46, g:139, b:87, tol:15, imgUrl:null, samples:[], step:1 };
+
+    // 색 변환
+    function hexToRgb(h){return {r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16)};}
+    function rgbToHex(r,g,b){return "#"+[r,g,b].map(function(x){x=Math.min(255,Math.max(0,x));var s=x.toString(16);return s.length<2?"0"+s:s;}).join("").toUpperCase();}
+    function rgbToLab(r,g,b){
+      var rr=r/255,gg=g/255,bb=b/255;
+      rr=rr>0.04045?Math.pow((rr+0.055)/1.055,2.4):rr/12.92;
+      gg=gg>0.04045?Math.pow((gg+0.055)/1.055,2.4):gg/12.92;
+      bb=bb>0.04045?Math.pow((bb+0.055)/1.055,2.4):bb/12.92;
+      var x=(rr*0.4124564+gg*0.3575761+bb*0.1804375)/0.95047;
+      var y=rr*0.2126729+gg*0.7151522+bb*0.0721750;
+      var z=(rr*0.0193339+gg*0.1191920+bb*0.9503041)/1.08883;
+      x=x>0.008856?Math.pow(x,1/3):7.787*x+16/116;
+      y=y>0.008856?Math.pow(y,1/3):7.787*y+16/116;
+      z=z>0.008856?Math.pow(z,1/3):7.787*z+16/116;
+      return {L:116*y-16,a:500*(x-y),b:200*(y-z)};
+    }
+    function deltaE(c1,c2){var a=rgbToLab(c1.r,c1.g,c1.b),b=rgbToLab(c2.r,c2.g,c2.b);return Math.sqrt(Math.pow(a.L-b.L,2)+Math.pow(a.a-b.a,2)+Math.pow(a.b-b.b,2));}
+    function colorDiffPct(c1,c2){return Math.sqrt(Math.pow(c1.r-c2.r,2)+Math.pow(c1.g-c2.g,2)+Math.pow(c1.b-c2.b,2))/Math.sqrt(255*255*3)*100;}
+    function contrast(hex){var c=hexToRgb(hex);return (0.299*c.r+0.587*c.g+0.114*c.b)/255>0.5?"#111":"#fff";}
+
+    // STEP 1 렌더
+    function renderTarget(){
+      $("#pvIn").style.background=st.hex; $("#pvIn").style.color=contrast(st.hex);
+      $("#pvHex").textContent=st.hex; $("#pvRgb").textContent="R:"+st.r+" G:"+st.g+" B:"+st.b;
+      if(document.activeElement!==$("#hexInput")) $("#hexInput").value=st.hex;
+      if(document.activeElement!==$("#inR")) $("#inR").value=st.r;
+      if(document.activeElement!==$("#inG")) $("#inG").value=st.g;
+      if(document.activeElement!==$("#inB")) $("#inB").value=st.b;
+      // chips active
+      var btns=document.querySelectorAll("#chips button");
+      btns.forEach(function(bt){ bt.classList.toggle("on", bt.getAttribute("data-hex").toUpperCase()===st.hex.toUpperCase()); });
+    }
+    function setFromHex(h){
+      if(/^#[0-9A-Fa-f]{6}$/.test(h)){ var c=hexToRgb(h); st.r=c.r;st.g=c.g;st.b=c.b;st.hex=h.toUpperCase(); renderTarget(); }
+    }
+    function setFromRgb(r,g,b){
+      st.r=Math.min(255,Math.max(0,r||0)); st.g=Math.min(255,Math.max(0,g||0)); st.b=Math.min(255,Math.max(0,b||0));
+      st.hex=rgbToHex(st.r,st.g,st.b); renderTarget();
+    }
+    // chips
+    (function(){
+      var wrap=$("#chips");
+      COLORS.forEach(function(c){
+        var b=document.createElement("button");
+        b.setAttribute("data-hex",c.hex);
+        b.innerHTML='<div class="sw" style="background:'+c.hex+'"></div><div class="nm">'+c.name+'</div>';
+        b.addEventListener("click",function(){ setFromHex(c.hex); });
+        wrap.appendChild(b);
+      });
+    })();
+    $("#hexInput").addEventListener("input",function(e){ var v=e.target.value; if(v[0]!=="#")v="#"+v; e.target.value=v; setFromHex(v); });
+    $("#inR").addEventListener("input",function(e){ setFromRgb(parseInt(e.target.value)||0, st.g, st.b); });
+    $("#inG").addEventListener("input",function(e){ setFromRgb(st.r, parseInt(e.target.value)||0, st.b); });
+    $("#inB").addEventListener("input",function(e){ setFromRgb(st.r, st.g, parseInt(e.target.value)||0); });
+    $("#tol").addEventListener("input",function(e){ st.tol=+e.target.value; $("#tolVal").textContent=st.tol+"%"; updateCurBar(); renderResult(); renderSamples(); });
+
+    // 스텝 전환
+    function goStep(n){
+      st.step=n;
+      $("#step1").classList.toggle("hide",n!==1);
+      $("#step2").classList.toggle("hide",n!==2);
+      $("#step3").classList.toggle("hide",n!==3);
+      document.querySelectorAll(".tabs button").forEach(function(bt){ bt.classList.toggle("on", +bt.getAttribute("data-step")===n); });
+      if(n===2) renderStep2();
+      if(n===3) renderResult();
+    }
+    document.querySelectorAll(".tabs button").forEach(function(bt){ bt.addEventListener("click",function(){ goStep(+bt.getAttribute("data-step")); }); });
+
+    // 파일 입력
+    var camInput=$("#camInput"), galInput=$("#galInput");
+    document.querySelectorAll("[data-open]").forEach(function(bt){
+      bt.addEventListener("click",function(){ (bt.getAttribute("data-open")==="cam"?camInput:galInput).click(); });
+    });
+    function onFile(e){
+      var f=e.target.files&&e.target.files[0];
+      if(!f) return;
+      var reader=new FileReader();
+      reader.onload=function(ev){ st.imgUrl=ev.target.result; st.samples=[]; goStep(2); };
+      reader.readAsDataURL(f);
+      e.target.value="";
+    }
+    camInput.addEventListener("change",onFile);
+    galInput.addEventListener("change",onFile);
+
+    // STEP 2
+    var cv=$("#cv");
+    function updateCurBar(){
+      $("#curSw").style.background=st.hex; $("#curHex").textContent=st.hex; $("#curTol").textContent=" | 허용 "+st.tol+"%";
+    }
+    function renderStep2(){
+      if(!st.imgUrl){ $("#s2empty").classList.remove("hide"); $("#s2main").classList.add("hide"); return; }
+      $("#s2empty").classList.add("hide"); $("#s2main").classList.remove("hide");
+      updateCurBar();
+      var ctx=cv.getContext("2d",{willReadFrequently:true});
+      var img=new Image();
+      img.onload=function(){ cv.width=img.width; cv.height=img.height; ctx.drawImage(img,0,0); renderMarkers(); renderSamples(); updateResultBtn(); };
+      img.src=st.imgUrl;
+    }
+    function sampleAt(clientX,clientY){
+      var ctx=cv.getContext("2d",{willReadFrequently:true});
+      var rect=cv.getBoundingClientRect();
+      var sx=cv.width/rect.width, sy=cv.height/rect.height;
+      var px=Math.floor((clientX-rect.left)*sx), py=Math.floor((clientY-rect.top)*sy);
+      var half=5;
+      var x0=Math.max(0,px-half),y0=Math.max(0,py-half);
+      var x1=Math.min(cv.width,px+half),y1=Math.min(cv.height,py+half);
+      var w=x1-x0,h=y1-y0; if(w<=0||h<=0) return;
+      var d=ctx.getImageData(x0,y0,w,h).data;
+      var rs=0,gs=0,bs=0,n=0;
+      for(var i=0;i<d.length;i+=4){ rs+=d[i];gs+=d[i+1];bs+=d[i+2];n++; }
+      var ar=Math.round(rs/n),ag=Math.round(gs/n),ab=Math.round(bs/n);
+      var sampled={r:ar,g:ag,b:ab}, target={r:st.r,g:st.g,b:st.b};
+      var pct=colorDiffPct(target,sampled), de=deltaE(target,sampled);
+      st.samples.push({
+        id:st.samples.length+1+"_"+Math.floor(pct*1000),
+        r:ar,g:ag,b:ab,hex:rgbToHex(ar,ag,ab),pct:pct,de:de,pass:pct<=st.tol,
+        px:(clientX-rect.left)/rect.width*100, py:(clientY-rect.top)/rect.height*100
+      });
+      renderMarkers(); renderSamples(); updateResultBtn();
+    }
+    cv.addEventListener("click",function(e){ sampleAt(e.clientX,e.clientY); });
+    cv.addEventListener("touchend",function(e){
+      if(e.changedTouches&&e.changedTouches[0]){ e.preventDefault(); sampleAt(e.changedTouches[0].clientX,e.changedTouches[0].clientY); }
+    },{passive:false});
+
+    function renderMarkers(){
+      var m=$("#markers"); m.innerHTML="";
+      st.samples.forEach(function(s,i){
+        var d=document.createElement("div");
+        d.className="marker";
+        d.style.left=s.px+"%"; d.style.top=s.py+"%";
+        d.style.border="3px solid "+(s.pass?"#0c6":"#f33");
+        d.style.background=s.hex; d.style.color=contrast(s.hex);
+        d.textContent=(i+1);
+        m.appendChild(d);
+      });
+    }
+    function renderSamples(){
+      var list=$("#sList");
+      if(!st.samples.length){ list.classList.add("hide"); return; }
+      list.classList.remove("hide");
+      $("#sListH").textContent="측정 "+st.samples.length+"건";
+      var box=$("#sItems"); box.innerHTML="";
+      st.samples.forEach(function(s,i){
+        var row=document.createElement("div"); row.className="sItem";
+        row.innerHTML='<div class="sw" style="background:'+s.hex+'"></div>'+
+          '<div style="flex:1"><div class="h1">#'+(i+1)+' '+s.hex+'</div><div class="h2">편차 '+s.pct.toFixed(1)+'% | ΔE '+s.de.toFixed(1)+'</div></div>'+
+          '<div class="badge '+(s.pass?"p":"f")+'">'+(s.pass?"합격":"불합격")+'</div>';
+        box.appendChild(row);
+      });
+    }
+    function updateResultBtn(){ $("#toResult").disabled = st.samples.length===0; }
+    $("#resetS").addEventListener("click",function(){ st.samples=[]; renderMarkers(); renderSamples(); updateResultBtn(); });
+    $("#toResult").addEventListener("click",function(){ goStep(3); });
+    $("#toMeasure").addEventListener("click",function(){ goStep(2); });
+
+    // STEP 3
+    function renderResult(){
+      var empty=$("#s3empty"), main=$("#s3main");
+      if(!st.samples.length){ empty.classList.remove("hide"); main.classList.add("hide"); return; }
+      empty.classList.add("hide"); main.classList.remove("hide");
+      var passN=st.samples.filter(function(s){return s.pass;}).length;
+      var failN=st.samples.length-passN;
+      var avg=(st.samples.reduce(function(a,s){return a+s.pct;},0)/st.samples.length).toFixed(1);
+      var allPass=failN===0;
+      var last=st.samples[st.samples.length-1];
+      var ttc=contrast(st.hex), lc=contrast(last.hex);
+
+      var rows="";
+      st.samples.forEach(function(s,i){
+        rows+='<tr>'+
+          '<td style="font-weight:600">'+(i+1)+'</td>'+
+          '<td><div style="width:16px;height:16px;border-radius:3px;background:'+s.hex+';border:1px solid #ddd;margin:0 auto"></div></td>'+
+          '<td>'+Math.abs(st.r-s.r)+'</td><td>'+Math.abs(st.g-s.g)+'</td><td>'+Math.abs(st.b-s.b)+'</td>'+
+          '<td style="font-weight:700;color:'+(s.pass?"#080":"#c00")+'">'+s.pct.toFixed(1)+'</td>'+
+          '<td>'+s.de.toFixed(1)+'</td>'+
+          '<td style="font-weight:800;color:'+(s.pass?"#080":"#c00")+'">'+(s.pass?"✅":"❌")+'</td></tr>';
+      });
+      var guides=[{c:"#0c6",t:"0~5: 거의 동일"},{c:"#8c0",t:"5~10: 근접"},{c:"#fa0",t:"10~20: 차이 명확"},{c:"#f44",t:"20+: 다른 색상"}];
+      var gh=""; guides.forEach(function(x){ gh+='<div class="gr"><div class="gd" style="background:'+x.c+'"></div><span style="color:#666">ΔE '+x.t+'</span></div>'; });
+
+      main.innerHTML=
+        '<div class="verdict '+(allPass?"pass":"fail")+'"><div class="em">'+(allPass?"✅":"❌")+'</div>'+
+          '<div class="bg">'+(allPass?"합  격":"불합격")+'</div>'+
+          '<div class="sub">허용오차 '+st.tol+'% 기준 | 평균 편차 '+avg+'%</div></div>'+
+        '<div class="stats">'+
+          '<div class="stat" style="background:#fff"><div class="n" style="color:#1B3A5C">'+st.samples.length+'</div><div class="l" style="color:#888">총 샘플</div></div>'+
+          '<div class="stat" style="background:#e6ffe6"><div class="n" style="color:#080">'+passN+'</div><div class="l" style="color:#080">합격</div></div>'+
+          '<div class="stat" style="background:#ffe6e6"><div class="n" style="color:#c00">'+failN+'</div><div class="l" style="color:#c00">불합격</div></div>'+
+        '</div>'+
+        '<div class="cmp">'+
+          '<div class="c" style="background:'+st.hex+';color:'+ttc+'"><div class="t1">설계</div><div class="t2">'+st.hex+'</div></div>'+
+          '<div class="c" style="background:'+last.hex+';color:'+lc+'"><div class="t1">최근 샘플</div><div class="t2">'+last.hex+'</div></div>'+
+        '</div>'+
+        '<div class="tblWrap"><div class="h">상세 데이터</div><div class="tblScroll"><table>'+
+          '<thead><tr><th>#</th><th>색상</th><th>ΔR</th><th>ΔG</th><th>ΔB</th><th>편차%</th><th>ΔE</th><th>판정</th></tr></thead>'+
+          '<tbody>'+rows+'</tbody></table></div></div>'+
+        '<div class="guide"><div class="gh">ΔE(색차) 참고</div>'+gh+'</div>'+
+        '<div class="note">⚠ 카메라 센서 기반 간이 측정. 조도·백밸런스에 따라 오차 발생 가능. 현장 1차 스크리닝 용도.</div>';
+    }
+
+    // 초기
+    renderTarget();
+    $("#tolVal").textContent=st.tol+"%";
+  })();
+  </script>
+</body>
+</html>

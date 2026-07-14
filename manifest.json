@@ -1,0 +1,14 @@
+{
+  "name": "EPDM 품질검측",
+  "short_name": "EPDM QC",
+  "description": "EPDM 탄성포장 색상·선형 품질검측 도구",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1B3A5C",
+  "theme_color": "#1B3A5C",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

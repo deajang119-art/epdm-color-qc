@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>EPDM 품질검측</title>
+  <meta name="description" content="EPDM 탄성포장 현장 품질검측 앱 — 색상 검측기와 선형(직선) 검측기." />
+  <meta name="theme-color" content="#1B3A5C" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="EPDM 품질검측" />
+  <link rel="apple-touch-icon" href="icon-512.png" />
+  <link rel="icon" href="icon-512.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    body{margin:0;font-family:'Pretendard','Noto Sans KR',system-ui,sans-serif;background:#f4f5f7;color:#1c2b24;}
+    #app{max-width:480px;margin:0 auto;min-height:100vh;background:#f4f5f7;}
+    a{text-decoration:none;color:inherit;}
+    .hd{background:linear-gradient(135deg,#1B3A5C,#2E75B6);color:#fff;padding:calc(20px + env(safe-area-inset-top)) 20px 26px;}
+    .hd .sm{font-size:11px;letter-spacing:2px;opacity:.65;}
+    .hd .tt{font-size:24px;font-weight:900;margin-top:4px;letter-spacing:-.5px;}
+    .hd .ds{font-size:13px;opacity:.9;margin-top:6px;line-height:1.5;}
+    .body{padding:18px;}
+    .lead{font-size:13px;color:#888;margin:2px 4px 14px;font-weight:600;}
+    .tool{display:flex;align-items:center;gap:16px;background:#fff;border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 2px 10px rgba(27,58,92,.08);border:1px solid #eef1f4;transition:transform .12s,box-shadow .12s;}
+    .tool:active{transform:scale(.98);}
+    .tool .ico{flex:0 0 auto;width:60px;height:60px;border-radius:16px;display:grid;place-items:center;font-size:30px;}
+    .tool.c1 .ico{background:linear-gradient(135deg,#e8f5ee,#cdebdb);}
+    .tool.c2 .ico{background:linear-gradient(135deg,#e7eefb,#cfe0f7);}
+    .tool .tx{flex:1;}
+    .tool .tx h2{margin:0;font-size:17px;font-weight:800;}
+    .tool .tx p{margin:4px 0 0;font-size:12.5px;color:#7a8a82;line-height:1.5;}
+    .tool .arr{flex:0 0 auto;color:#2E75B6;font-size:22px;font-weight:800;}
+    .tip{margin-top:8px;background:#fffdf2;border:1px solid #f0e4b8;border-radius:12px;padding:14px 16px;font-size:12.5px;color:#8a6d1a;line-height:1.6;position:relative;}
+    .tip b{color:#6b530f;}
+    .tip .x{position:absolute;top:8px;right:10px;color:#b9a253;font-size:16px;cursor:pointer;padding:4px;}
+    .foot{text-align:center;color:#aab3ad;font-size:11px;padding:24px 16px 40px;line-height:1.6;}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="hd">
+      <div class="sm">GSS 품질안전그룹</div>
+      <div class="tt">EPDM 품질검측</div>
+      <div class="ds">현장에서 사진으로 색상·선형 품질을 바로 검측하는 도구입니다.</div>
+    </div>
+    <div class="body">
+      <p class="lead">검측 항목을 선택하세요</p>
+
+      <a class="tool c1" href="color.html">
+        <div class="ico">🎨</div>
+        <div class="tx">
+          <h2>색상 검측기</h2>
+          <p>사진 속 시공 색상을 측정해 설계 색상과의 색차(ΔE)로 합격/불량 판정</p>
+        </div>
+        <div class="arr">›</div>
+      </a>
+
+      <a class="tool c2" href="line.html">
+        <div class="ico">📐</div>
+        <div class="tx">
+          <h2>선형(직선) 검측기</h2>
+          <p>색상 경계선이 직선에서 얼마나 삐뚤빼뚤한지 편차(mm)로 판정</p>
+        </div>
+        <div class="arr">›</div>
+      </a>
+
+      <div class="tip" id="tip">
+        <span class="x" id="tipX">✕</span>
+        📱 <b>홈 화면에 앱으로 추가하기</b><br>
+        브라우저 메뉴(⋮ 또는 공유)에서 <b>"홈 화면에 추가"</b>를 누르면, 앱 아이콘이 생겨 다음부터 바로 열 수 있어요.
+      </div>
+
+      <div class="foot">
+        EPDM 탄성포장 현장 품질검측 · GSS 품질안전그룹<br>
+        ⚠ 카메라 기반 간이 측정 — 현장 1차 스크리닝 용도
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      var tip=document.getElementById('tip'), x=document.getElementById('tipX');
+      try{ if(localStorage.getItem('epdm_tip_hidden')==='1') tip.style.display='none'; }catch(e){}
+      x.addEventListener('click',function(){ tip.style.display='none'; try{localStorage.setItem('epdm_tip_hidden','1');}catch(e){} });
+    })();
+  </script>
+</body>
+</html>
